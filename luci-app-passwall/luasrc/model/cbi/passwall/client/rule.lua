@@ -4,8 +4,8 @@ local has_xray = api.finded_com("xray")
 
 m = Map(appname)
 -- [[ Rule Settings ]]--
-s = m:section(TypedSection, "global_rules", translate("Rule status"))
-s.anonymous = true
+--[[ s = m:section(TypedSection, "global_rules", translate("Rule status"))
+s.anonymous = true ]]--
 
 --[[
 o = s:option(Flag, "adblock", translate("Enable adblock"))
@@ -13,7 +13,7 @@ o.rmempty = false
 ]]--
 
 ---- gfwlist URL
-o = s:option(DynamicList, "gfwlist_url", translate("GFW domains(gfwlist) Update URL"))
+--[[ o = s:option(DynamicList, "gfwlist_url", translate("GFW domains(gfwlist) Update URL"))
 o:value("https://fastly.jsdelivr.net/gh/YW5vbnltb3Vz/domain-list-community@release/gfwlist.txt", translate("v2fly/domain-list-community"))
 o:value("https://fastly.jsdelivr.net/gh/Loyalsoldier/v2ray-rules-dat@release/gfw.txt", translate("Loyalsoldier/v2ray-rules-dat"))
 o:value("https://fastly.jsdelivr.net/gh/Loukky/gfwlist-by-loukky/gfwlist.txt", translate("Loukky/gfwlist-by-loukky"))
@@ -63,7 +63,7 @@ o:depends("auto_update", true)
 if has_xray then
 	o = s:option(Value, "v2ray_location_asset", translate("Location of V2ray/Xray asset"), translate("This variable specifies a directory where geoip.dat and geosite.dat files are."))
 	o.default = "/usr/share/v2ray/"
-	o.rmempty = false
+	o.rmempty = false ]]--
 
 	s = m:section(TypedSection, "shunt_rules", "Xray " .. translate("Shunt Rule"), "<a style='color: red'>" .. translate("Please note attention to the priority, the higher the order, the higher the priority.") .. "</a>")
 	s.template = "cbi/tblsection"
@@ -85,6 +85,6 @@ if has_xray then
 	end
 
 	o = s:option(DummyValue, "remarks", translate("Remarks"))
-end
+--end
 
 return m
