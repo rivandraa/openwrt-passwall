@@ -30,11 +30,11 @@ end
 local var = api.get_args(arg)
 local haproxy_path = var["-path"]
 local haproxy_conf = var["-conf"]
-local haproxy_dns = var["-dns"] or "119.29.29.29:53,223.5.5.5:53"
+local haproxy_dns = var["-dns"] --or "119.29.29.29:53,223.5.5.5:53"
 
-local cpu_thread = sys.exec('echo -n $(cat /proc/cpuinfo | grep "processor" | wc -l)') or "1"
-local health_check_type = uci:get(appname, "@global_haproxy[0]", "health_check_type") or "tcp"
-local health_check_inter = uci:get(appname, "@global_haproxy[0]", "health_check_inter") or "10"
+local cpu_thread = sys.exec('echo -n $(cat /proc/cpuinfo | grep "processor" | wc -l)') --or "1"
+local health_check_type = uci:get(appname, "@global_haproxy[0]", "health_check_type") --or "tcp"
+local health_check_inter = uci:get(appname, "@global_haproxy[0]", "health_check_inter") --or "10"
 
 log("HAPROXY 负载均衡...")
 fs.mkdir(haproxy_path)
@@ -44,37 +44,46 @@ local f_out = io.open(haproxy_file, "a")
 
 local haproxy_config = [[
 global
-	daemon
-	log         127.0.0.1 local2
-	maxconn     60000
-	stats socket  {{path}}/haproxy.sock
-	nbthread {{nbthread}}
-	external-check
-	insecure-fork-wanted
+    daemon
+    log         127.0.0.1 local2
+    maxconn     64000
+    stats socket  {{path}}/haproxy.sock
+    nbthread {{nbthread}}
+    external-check
+    insecure-fork-wanted
 
 defaults
-	mode                    tcp
-	log                     global
-	option                  tcplog
-	option                  dontlognull
-	option http-server-close
-	#option forwardfor       except 127.0.0.0/8
-	option                  redispatch
-	retries                 2
-	timeout http-request    10s
-	timeout queue           1m
-	timeout connect         10s
-	timeout client          1m
-	timeout server          1m
-	timeout http-keep-alive 10s
-	timeout check           10s
-	maxconn                 3000
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    option http-server-close
+    #option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout client-fin      1s
+    timeout server-fin      1s
+    timeout http-keep-alive 10s
+    timeout check           10s
+    #maxconn                 3000
 	
 resolvers mydns
-	resolve_retries       1
-	timeout resolve       5s
-	hold valid           600s
 {{dns}}
+    parse-resolv-conf
+    resolve_retries       3
+    timeout resolve       5s
+    timeout retry         5s
+    hold other           30s
+    hold refused         30s
+    hold nx              30s
+    hold timeout         30s
+    hold valid           10s
+    hold obsolete        30s
 ]]
 
 haproxy_config = haproxy_config:gsub("{{path}}",  haproxy_path)
@@ -163,22 +172,22 @@ for i, port in pairs(sortTable) do
 
 	f_out:write("\n" .. string.format([[
 listen %s
-	bind 0.0.0.0:%s
-	mode tcp
-	balance roundrobin
+    bind 0.0.0.0:%s
+    mode tcp
+    balance roundrobin
 ]], port, port))
 
 	if health_check_type == "passwall_logic" then
 		f_out:write(string.format([[
-	option external-check
-	external-check command "/usr/share/passwall/haproxy_check.sh"
+    option external-check
+    external-check command "/usr/share/passwall/haproxy_check.sh"
 ]], port, port))
 	end
 
 	for i, o in ipairs(listens[port]) do
 		local remark = o.server_remark
 		local server = o.server_address .. ":" .. o.server_port
-		local server_conf = "server {{remark}} {{server}} weight {{weight}} {{resolvers}} check inter {{inter}} rise 1 fall 3 {{backup}}"
+		local server_conf = "server {{remark}} {{server}} weight {{weight}} {{resolvers}} check inter {{inter}} rise 2 fall 3 {{backup}}"
 		server_conf = server_conf:gsub("{{remark}}", remark)
 		server_conf = server_conf:gsub("{{server}}", server)
 		server_conf = server_conf:gsub("{{weight}}",  o.lbweight)
@@ -206,12 +215,12 @@ local console_user = uci:get(appname, "@global_haproxy[0]", "console_user")
 local console_password = uci:get(appname, "@global_haproxy[0]", "console_password")
 local str = [[
 listen console
-	bind 0.0.0.0:%s
-	mode http
-	stats refresh 30s
-	stats uri /
-	stats admin if TRUE
-	%s
+    bind 0.0.0.0:%s
+    mode http
+    stats refresh 30s
+    stats uri /
+    stats admin if TRUE
+    %s
 ]]
 f_out:write("\n" .. string.format(str, console_port, (console_user and console_user ~= "" and console_password and console_password ~= "") and "stats auth " .. console_user .. ":" .. console_password or ""))
 log(string.format("  * 控制台端口：%s", console_port))
