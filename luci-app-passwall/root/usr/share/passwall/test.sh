@@ -39,12 +39,12 @@ test_proxy() {
 	if [ "$status" = "200" ]; then
 		result=0
 	else
-		status2=$(test_url "https://www.baidu.com" ${retry_num} ${connect_timeout})
+		status2=$(test_url "https://cp.cloudflare.com/generate_204" ${retry_num} ${connect_timeout})
 		if [ "$status2" = "200" ]; then
 			result=1
 		else
 			result=2
-			ping -c 3 -W 1 223.5.5.5 > /dev/null 2>&1
+			ping -c 3 -W 1 9.9.9.9 > /dev/null 2>&1
 			[ $? -eq 0 ] && {
 				result=1
 			}
